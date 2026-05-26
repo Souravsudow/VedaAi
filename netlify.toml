@@ -1,0 +1,9 @@
+cat > netlify.toml << 'EOF'
+[build]
+  command = "npm --workspace @vedaai/web run build"
+  publish = "apps/web/.next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_DISABLE_TURBOPACK = "1"
+EOF

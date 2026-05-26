@@ -1,1 +1,12 @@
-20
+cd /path/to/VedaAi
+
+# Delete old
+rm .nvmrc
+
+# Create fresh - sirf "20" bina kuch extra
+printf "20\n" > .nvmrc
+
+# Verify
+cat -v .nvmrc
+# Output hona chahiye: 20
+# Agar "^M" ya kuch aur dikhe toh galat hai
