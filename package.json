@@ -18,6 +18,6 @@
     "seed": "npm run seed --workspace @vedaai/api"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   }
 }
