@@ -1,0 +1,23 @@
+{
+  "name": "vedaai-assessment-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Assessment Studio monorepo for teacher-facing paper generation workflows.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @vedaai/web",
+    "dev:web": "npm run dev --workspace @vedaai/web",
+    "dev:api": "npm run dev --workspace @vedaai/api",
+    "dev:worker": "npm run dev --workspace @vedaai/worker",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspace @vedaai/web",
+    "seed": "npm run seed --workspace @vedaai/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
