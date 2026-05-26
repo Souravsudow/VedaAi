@@ -1,10 +1,3 @@
-cd /path/to/VedaAi
-
-# Delete old corrupted file
-rm netlify.toml
-
-# Create fresh with correct content
-cat > netlify.toml << 'EOF'
 [build]
   command = "npm --workspace @vedaai/web run build"
   publish = "apps/web/.next"
@@ -12,4 +5,3 @@ cat > netlify.toml << 'EOF'
 [build.environment]
   NODE_VERSION = "20"
   NEXT_DISABLE_TURBOPACK = "1"
-EOF
