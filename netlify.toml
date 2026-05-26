@@ -1,3 +1,9 @@
+cd /path/to/VedaAi
+
+# Delete old corrupted file
+rm netlify.toml
+
+# Create fresh with correct content
 cat > netlify.toml << 'EOF'
 [build]
   command = "npm --workspace @vedaai/web run build"
