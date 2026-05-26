@@ -14,9 +14,9 @@
     "@vedaai/shared": "file:../../packages/shared",
     "clsx": "^2.1.1",
     "lucide-react": "^0.555.0",
-    "next": "^16.0.4",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1",
+    "next": "^16.2.6",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "socket.io-client": "^4.8.1",
     "zustand": "^5.0.8"
   },
