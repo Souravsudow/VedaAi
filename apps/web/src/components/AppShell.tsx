@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Bell,
@@ -18,22 +18,61 @@ import {
   User,
   UsersRound
 } from "lucide-react";
+import { api } from "@/lib/api";
 
 const nav = [
   { href: "/", label: "Home", icon: Grid2X2 },
   { href: "/history", label: "My Groups", icon: UsersRound },
-  { href: "/", label: "Assignments", icon: FileText, badge: "10" },
+  { href: "/", label: "Assignments", icon: FileText },
   { href: "/assignments/new", label: "AI Teacher's Toolkit", icon: BookOpen },
-  { href: "/history", label: "My Library", icon: Library, badge: "32" }
+  { href: "/history", label: "My Library", icon: Library }
 ];
+
+const demoTitlePattern = /Backend Smoke|Geometry Checkpoint|Algebra Foundations/i;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [assignments, setAssignments] = useState<any[]>([]);
 
   const title = pathname === "/assignments/new" ? "Assignment" : pathname.startsWith("/assignments/") ? "Assignment" : "Assignment";
+  const readyAssignments = assignments.filter((assignment) => assignment.status === "ready");
+  const notifications = useMemo(
+    () =>
+      assignments
+        .filter((assignment) => assignment.status === "ready" || assignment.status === "generating")
+        .slice(0, 3)
+        .map((assignment) => ({
+          id: assignment._id,
+          message:
+            assignment.status === "ready"
+              ? `${assignment.title} paper is ready`
+              : `${assignment.title} generation is in progress`,
+          time: assignment.status === "ready" ? "Ready now" : "Running"
+        })),
+    [assignments]
+  );
+  const hasNotifications = notifications.length > 0;
+
+  useEffect(() => {
+    let mounted = true;
+
+    api
+      .listAssignments()
+      .then((items) => {
+        if (!mounted) return;
+        setAssignments((items || []).filter((assignment: any) => !assignment.title?.match(demoTitlePattern)));
+      })
+      .catch(() => {
+        if (mounted) setAssignments([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [pathname]);
 
   return (
     <div className={`app-frame ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
@@ -51,6 +90,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="sidebar-nav">
           {nav.map((item) => {
             const Icon = item.icon;
+            const badge =
+              item.label === "Assignments"
+                ? assignments.length
+                : item.label === "My Library"
+                  ? readyAssignments.length
+                  : 0;
             const active =
               item.label === "Assignments"
                 ? pathname === "/" || (pathname.startsWith("/assignments/") && pathname !== "/assignments/new")
@@ -59,7 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link key={`${item.label}-${item.href}`} href={item.href} className={`sidebar-link ${active ? "is-active" : ""}`}>
                 <Icon size={22} />
                 <span>{item.label}</span>
-                {item.badge && <strong>{item.badge}</strong>}
+                {badge > 0 && <strong>{badge}</strong>}
               </Link>
             );
           })}
@@ -101,32 +146,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => setNotifOpen(!notifOpen)}
               >
                 <Bell size={28} />
-                <span className="notif-badge">3</span>
+                {hasNotifications && <span className="notif-badge" />}
               </button>
 
               {notifOpen && (
                 <div className="notif-dropdown">
                   <div className="notif-header">
                     <strong>Notifications</strong>
-                    <span>3 new</span>
+                    {hasNotifications && <span>{notifications.length} new</span>}
                   </div>
-                  <div className="notif-list">
-                    <div className="notif-item">
-                      <div className="notif-dot" />
-                      <p>New assignment created successfully</p>
-                      <span>2 min ago</span>
+                  {hasNotifications ? (
+                    <div className="notif-list">
+                      {notifications.map((notification) => (
+                        <div className="notif-item" key={notification.id}>
+                          <div className="notif-dot" />
+                          <p>{notification.message}</p>
+                          <span>{notification.time}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div className="notif-item">
-                      <div className="notif-dot" />
-                      <p>Paper generation completed</p>
-                      <span>1 hour ago</span>
-                    </div>
-                    <div className="notif-item">
-                      <div className="notif-dot" />
-                      <p>Student submission received</p>
-                      <span>3 hours ago</span>
-                    </div>
-                  </div>
+                  ) : (
+                    <div className="notif-empty">No notifications yet</div>
+                  )}
                 </div>
               )}
             </div>

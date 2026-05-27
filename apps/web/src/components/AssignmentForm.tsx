@@ -1,16 +1,66 @@
 "use client";
 
-import { useMemo, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, ChevronDown, CloudUpload, FileText, Loader2, Minus, Plus, Sparkles, WandSparkles, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarPlus, ChevronDown, CloudUpload, FileText, Loader2, Mic, Minus, Plus, Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api";
 
-const questionRows = [
-  ["Multiple Choice Questions", "mcq", 4, 1],
-  ["Short Questions", "short-answer", 3, 2],
-  ["Diagram/Graph-Based Questions", "long-answer", 5, 5],
-  ["Case Study Questions", "case-study", 2, 6]
-] as const;
+type QuestionTypeValue = "mcq" | "short-answer" | "long-answer" | "case-study" | "fill-blank";
+
+type QuestionRow = {
+  id: string;
+  label: string;
+  type: QuestionTypeValue;
+  count: number;
+  marks: number;
+};
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognition;
+    webkitSpeechRecognition?: new () => SpeechRecognition;
+  }
+}
+
+type SpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  onstart?: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionEvent = {
+  resultIndex?: number;
+  results: ArrayLike<{
+    0: { transcript: string };
+    isFinal: boolean;
+  }>;
+};
+
+const questionTypeOptions: Array<{ label: string; type: QuestionTypeValue; marks: number }> = [
+  { label: "Multiple Choice Questions", type: "mcq", marks: 1 },
+  { label: "Short Questions", type: "short-answer", marks: 2 },
+  { label: "Diagram/Graph-Based Questions", type: "long-answer", marks: 5 },
+  { label: "Case Study Questions", type: "case-study", marks: 6 },
+  { label: "Numerical Problems", type: "long-answer", marks: 5 },
+  { label: "Fill in the Blanks", type: "fill-blank", marks: 1 }
+];
+
+function isQuestionTypeValue(type: string): type is QuestionTypeValue {
+  return questionTypeOptions.some((option) => option.type === type);
+}
+
+const defaultQuestionRows: QuestionRow[] = [
+  { id: "mcq", label: "Multiple Choice Questions", type: "mcq", count: 4, marks: 1 },
+  { id: "short-answer", label: "Short Questions", type: "short-answer", count: 3, marks: 2 },
+  { id: "long-answer", label: "Diagram/Graph-Based Questions", type: "long-answer", count: 5, marks: 5 },
+  { id: "case-study", label: "Case Study Questions", type: "case-study", count: 2, marks: 6 }
+];
 
 // Default empty form state
 const emptyForm = {
@@ -33,23 +83,26 @@ export function AssignmentForm() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<any>(null);
+  const [questionRows, setQuestionRows] = useState<QuestionRow[]>(defaultQuestionRows);
+  const [listening, setListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const speechBaseRef = useRef("");
 
   const [form, setForm] = useState(emptyForm);
 
   // Check if form has been auto-filled from upload
   const isFormFilled = !!form.title && !!form.subject && !!form.sourceText;
+  const totalQuestions = questionRows.reduce((sum, row) => sum + row.count, 0);
+  const totalMarks = questionRows.reduce((sum, row) => sum + row.count * row.marks, 0);
 
-  const promptPreview = useMemo(
-    () =>
-      [
-        `Create a structured ${form.subject || "..."} paper for ${form.classLevel || "..."}.`,
-        `Marks: ${form.totalMarks}. Types: ${form.questionTypes.join(", ")}.`,
-        `Difficulty: easy ${form.difficultyMix.easy}%, medium ${form.difficultyMix.medium}%, hard ${form.difficultyMix.hard}%.`,
-        `Source: ${uploadedFile ? `File: ${uploadedFile.name}` : (form.sourceText?.slice(0, 220) ?? "")}`
-      ].join("\n"),
-    [form, uploadedFile]
-  );
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      questionTypes: [...new Set(questionRows.map((row) => row.type))],
+      totalMarks
+    }));
+  }, [questionRows, totalMarks]);
 
   // ===== FILE HANDLING =====
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -118,6 +171,21 @@ export function AssignmentForm() {
           difficultyMix: parsed.difficultyMix ?? prev.difficultyMix,
           questionTypes: parsed.questionTypes ?? prev.questionTypes
         }));
+        const parsedQuestionTypes = parsed.questionTypes?.filter(isQuestionTypeValue);
+        if (parsedQuestionTypes?.length) {
+          setQuestionRows(
+            parsedQuestionTypes.map((type, index) => {
+              const option = questionTypeOptions.find((item) => item.type === type) ?? questionTypeOptions[0];
+              return {
+                id: `${type}-${index}-${Date.now()}`,
+                label: option.label,
+                type,
+                count: index === 0 ? 4 : 3,
+                marks: option.marks
+              };
+            })
+          );
+        }
       } else {
         // Fallback: just use filename as title
         setForm(prev => ({
@@ -161,11 +229,81 @@ export function AssignmentForm() {
     setUploadedFile(null);
     setParsedData(null);
     setForm(emptyForm);
+    setQuestionRows(defaultQuestionRows);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
   // =========================
+
+  function updateQuestionRow(id: string, patch: Partial<QuestionRow>) {
+    setQuestionRows((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  }
+
+  function stepQuestionRow(id: string, key: "count" | "marks", delta: number) {
+    setQuestionRows((rows) =>
+      rows.map((row) => (row.id === id ? { ...row, [key]: Math.max(1, row[key] + delta) } : row))
+    );
+  }
+
+  function removeQuestionRow(id: string) {
+    setQuestionRows((rows) => (rows.length > 1 ? rows.filter((row) => row.id !== id) : rows));
+  }
+
+  function addQuestionRow() {
+    const option = questionTypeOptions.find((item) => !questionRows.some((row) => row.label === item.label)) ?? questionTypeOptions[0];
+    setQuestionRows((rows) => [
+      ...rows,
+      {
+        id: `${option.type}-${Date.now()}`,
+        label: option.label,
+        type: option.type,
+        count: 1,
+        marks: option.marks
+      }
+    ]);
+  }
+
+  function changeQuestionType(id: string, label: string) {
+    const option = questionTypeOptions.find((item) => item.label === label);
+    if (!option) return;
+    updateQuestionRow(id, { label: option.label, type: option.type, marks: option.marks });
+  }
+
+  function toggleMic() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    if (!Recognition) {
+      alert("Speech input is not supported in this browser. Please use Chrome or Safari.");
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognitionRef.current = recognition;
+    speechBaseRef.current = form.instructions.trim();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = navigator.language?.startsWith("hi") ? "hi-IN" : "en-IN";
+    recognition.onstart = () => setListening(true);
+    recognition.onresult = (event) => {
+      const transcript = Array.from({ length: event.results.length }, (_, index) => event.results[index])
+        .map((result) => result?.[0]?.transcript ?? "")
+        .join(" ")
+        .trim();
+      if (transcript) {
+        const nextText = [speechBaseRef.current, transcript].filter(Boolean).join(" ");
+        setForm((prev) => ({ ...prev, instructions: nextText }));
+      }
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognition.start();
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -174,6 +312,10 @@ export function AssignmentForm() {
     try {
       const payload = {
         ...form,
+        title: form.title || uploadedFile?.name.replace(/\.[^/.]+$/, "") || "New Assignment",
+        subject: form.subject || "General",
+        classLevel: form.classLevel || "Class",
+        sourceText: form.sourceText || uploadedFile?.name || "Uploaded syllabus",
         fileUrl: uploadedFile ? `/api/files/${uploadedFile.name}` : undefined,
         fileName: uploadedFile?.name
       };
@@ -272,61 +414,25 @@ export function AssignmentForm() {
               {uploadLoading 
                 ? "⏳ Please wait while we analyze your document..."
                 : uploadedFile 
-                  ? "✓ File processed. Review the auto-filled details on the right."
-                  : "📎 Upload a syllabus image, PDF, or document to get started"}
+                  ? "File processed. Continue with question settings."
+                  : "Upload a syllabus image, PDF, or document to get started"}
             </p>
           </div>
-
-          <div className="assignment-fields-grid">
-            <label className={`form-label ${form.title && !isFormFilled ? 'field-filled' : ''}`}>
-              Assignment Title
-              <input 
-                className="field" 
-                value={form.title} 
-                onChange={(event) => setForm({ ...form, title: event.target.value })} 
-                placeholder={uploadedFile ? "Extracting title..." : "Enter assignment title"}
-                disabled={uploadLoading}
-              />
-            </label>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className={`form-label ${form.subject ? 'field-filled' : ''}`}>
-                Subject
-                <input 
-                  className="field" 
-                  value={form.subject} 
-                  onChange={(event) => setForm({ ...form, subject: event.target.value })} 
-                  placeholder={uploadedFile ? "Detecting subject..." : "e.g. Mathematics"}
-                  disabled={uploadLoading}
-                />
-              </label>
-              <label className={`form-label ${form.classLevel ? 'field-filled' : ''}`}>
-                Class
-                <input 
-                  className="field" 
-                  value={form.classLevel} 
-                  onChange={(event) => setForm({ ...form, classLevel: event.target.value })} 
-                  placeholder={uploadedFile ? "Detecting class..." : "e.g. Class 8"}
-                  disabled={uploadLoading}
-                />
-              </label>
-            </div>
-
-            <label className="form-label">
-              Due Date
-              <span className="relative">
-                <input 
-                  className="field pr-14" 
-                  type="date" 
-                  value={form.dueDate} 
-                  onChange={(event) => setForm({ ...form, dueDate: event.target.value })} 
-                  disabled={uploadLoading}
-                />
-                <CalendarPlus className="calendar-icon" size={30} />
-              </span>
-            </label>
-          </div>
         </div>
+
+        <label className="form-label due-date-field">
+          Due Date
+          <span className="relative">
+            <input 
+              className="field pr-14" 
+              type="date" 
+              value={form.dueDate} 
+              onChange={(event) => setForm({ ...form, dueDate: event.target.value })} 
+              disabled={uploadLoading}
+            />
+            <CalendarPlus className="calendar-icon" size={30} />
+          </span>
+        </label>
 
         <div className="question-header-row">
           <span>Question Type</span>
@@ -334,64 +440,99 @@ export function AssignmentForm() {
           <span>Marks</span>
         </div>
 
-        {questionRows.map(([label, type, count, marks]) => (
-          <div key={type} className="question-row">
+        {questionRows.map((row) => (
+          <div key={row.id} className="question-row">
             <div>
               <div className="question-pill">
-                {label}
+                <select
+                  value={row.label}
+                  onChange={(event) => changeQuestionType(row.id, event.target.value)}
+                  aria-label="Question type"
+                  disabled={uploadLoading}
+                >
+                  {questionTypeOptions.map((option) => (
+                    <option key={`${option.label}-${option.type}`} value={option.label}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
                 <ChevronDown size={22} />
               </div>
             </div>
             <div className="stepper">
-              <Minus size={22} />
-              <strong>{count}</strong>
-              <Plus size={22} />
+              <button type="button" onClick={() => stepQuestionRow(row.id, "count", -1)} aria-label="Decrease questions">
+                <Minus size={22} />
+              </button>
+              <strong>{row.count}</strong>
+              <button type="button" onClick={() => stepQuestionRow(row.id, "count", 1)} aria-label="Increase questions">
+                <Plus size={22} />
+              </button>
             </div>
             <div className="stepper">
-              <Minus size={22} />
-              <strong>{marks}</strong>
-              <Plus size={22} />
+              <button type="button" onClick={() => stepQuestionRow(row.id, "marks", -1)} aria-label="Decrease marks">
+                <Minus size={22} />
+              </button>
+              <strong>{row.marks}</strong>
+              <button type="button" onClick={() => stepQuestionRow(row.id, "marks", 1)} aria-label="Increase marks">
+                <Plus size={22} />
+              </button>
             </div>
-            <X className="hidden" />
+            <button type="button" className="question-remove" onClick={() => removeQuestionRow(row.id)} aria-label="Remove question type">
+              <X size={18} />
+            </button>
           </div>
         ))}
 
-        <div className="source-grid">
-          <label className={`form-label ${form.sourceText ? 'field-filled' : ''}`}>
-            Syllabus / Source Text
-            <textarea 
-              className="field min-h-28" 
-              value={form.sourceText} 
-              onChange={(event) => setForm({ ...form, sourceText: event.target.value, sourceType: "text" })} 
-              placeholder={uploadedFile ? "Extracting content..." : "Paste your syllabus text here or upload a file above..."}
-              disabled={uploadLoading}
-            />
-          </label>
-          <label className="form-label">
-            Instructions
-            <textarea 
-              className="field min-h-24" 
-              value={form.instructions} 
-              onChange={(event) => setForm({ ...form, instructions: event.target.value })} 
-              placeholder="Enter special instructions for question generation..."
-              disabled={uploadLoading}
-            />
-          </label>
-          <div className="prompt-block">
-            <div>Prompt Preview</div>
-            <pre className="prompt-preview">{promptPreview}</pre>
+        <div className="question-actions-row">
+          <button type="button" className="add-question-type" onClick={addQuestionRow}>
+            <Plus size={20} />
+            Add Question Type
+          </button>
+          <div className="question-totals">
+            <span>Total Questions : {totalQuestions}</span>
+            <span>Total Marks : {totalMarks}</span>
           </div>
         </div>
 
+        <div className="source-grid">
+          <label className="form-label additional-info">
+            Additional Information (For better output)
+            <span className="relative">
+            <textarea 
+              className="field min-h-24 pr-16" 
+              value={form.instructions} 
+              onChange={(event) => setForm({ ...form, instructions: event.target.value })} 
+              placeholder="e.g Generate a question paper for 3 hour exam duration..."
+              disabled={uploadLoading}
+            />
+              <button
+                type="button"
+                className={`mic-button ${listening ? "is-listening" : ""}`}
+                onClick={toggleMic}
+                aria-label={listening ? "Stop voice input" : "Start voice input"}
+                title={listening ? "Listening..." : "Speak additional instructions"}
+              >
+              <Mic size={18} />
+              </button>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <div className="form-navigation">
+        <button type="button" className="button-light" onClick={() => router.push("/")}>
+          <ArrowLeft size={20} />
+          Previous
+        </button>
         <button 
-          className="button-dark mx-auto mt-9" 
+          className="button-dark" 
           type="submit" 
           disabled={loading || uploadLoading || !form.title}
         >
-          <WandSparkles size={24} />
-          {loading ? "Creating..." : uploadLoading ? "Processing..." : !form.title ? "Upload a file first" : "Create Assignment"}
+          {loading ? "Creating..." : uploadLoading ? "Processing..." : "Next"}
+          <ArrowRight size={20} />
         </button>
-      </section>
+      </div>
     </form>
   );
 }
