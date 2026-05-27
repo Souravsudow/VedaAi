@@ -11,9 +11,11 @@ import {
   FileText,
   Grid2X2,
   Library,
+  LogOut,
   Plus,
   Settings,
   Sparkles,
+  User,
   UsersRound
 } from "lucide-react";
 
@@ -28,6 +30,9 @@ const nav = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
   const title = pathname === "/assignments/new" ? "Assignment" : pathname.startsWith("/assignments/") ? "Assignment" : "Assignment";
 
   return (
@@ -61,15 +66,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="sidebar-footer">
-          <Link href="/history" className="sidebar-link">
+          <Link href="/settings" className={`sidebar-link ${pathname === "/settings" ? "is-active" : ""}`}>
             <Settings size={22} />
             <span>Settings</span>
           </Link>
-          <div className="school-card">
+
+          {/* User Profile Card */}
+          <div className="profile-card">
             <span className="avatar">JD</span>
-            <div>
-              <strong>Delhi Public School</strong>
-              <p>Bokaro Steel City</p>
+            <div className="profile-info">
+              <strong>John Doe</strong>
+              <p>Teacher</p>
             </div>
           </div>
         </div>
@@ -84,14 +91,79 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Grid2X2 className="toolbar-grid" size={25} />
             <span>{title}</span>
           </div>
+
           <div className="toolbar-right">
-            <button className="notification-button" aria-label="Notifications">
-              <Bell size={28} />
-              <span />
-            </button>
-            <span className="avatar small">JD</span>
-            <strong>John Doe</strong>
-            <ChevronDown size={23} />
+            {/* Notifications */}
+            <div className="notif-wrapper">
+              <button 
+                className="notification-button" 
+                aria-label="Notifications"
+                onClick={() => setNotifOpen(!notifOpen)}
+              >
+                <Bell size={28} />
+                <span className="notif-badge">3</span>
+              </button>
+
+              {notifOpen && (
+                <div className="notif-dropdown">
+                  <div className="notif-header">
+                    <strong>Notifications</strong>
+                    <span>3 new</span>
+                  </div>
+                  <div className="notif-list">
+                    <div className="notif-item">
+                      <div className="notif-dot" />
+                      <p>New assignment created successfully</p>
+                      <span>2 min ago</span>
+                    </div>
+                    <div className="notif-item">
+                      <div className="notif-dot" />
+                      <p>Paper generation completed</p>
+                      <span>1 hour ago</span>
+                    </div>
+                    <div className="notif-item">
+                      <div className="notif-dot" />
+                      <p>Student submission received</p>
+                      <span>3 hours ago</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Profile Dropdown */}
+            <div className="profile-wrapper">
+              <button 
+                className="profile-trigger"
+                onClick={() => setProfileOpen(!profileOpen)}
+              >
+                <span className="avatar small">JD</span>
+                <strong>John Doe</strong>
+                <ChevronDown size={23} className={profileOpen ? "rotate" : ""} />
+              </button>
+
+              {profileOpen && (
+                <div className="profile-dropdown">
+                  <div className="profile-header">
+                    <span className="avatar">JD</span>
+                    <div>
+                      <strong>John Doe</strong>
+                      <p>john.doe@school.edu</p>
+                    </div>
+                  </div>
+                  <div className="profile-menu">
+                    <Link href="/settings" className="profile-item" onClick={() => setProfileOpen(false)}>
+                      <Settings size={18} />
+                      <span>Settings</span>
+                    </Link>
+                    <button className="profile-item" onClick={() => alert("Logout clicked")}>
+                      <LogOut size={18} />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
