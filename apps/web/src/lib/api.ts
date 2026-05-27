@@ -18,23 +18,27 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   listAssignments: () => request<any[]>("/api/assignments"),
+
   getAssignment: (id: string) => request<any>(`/api/assignments/${id}`),
 
   createAssignment: (payload: any) =>
     request<any>("/api/assignments", { method: "POST", body: JSON.stringify(payload) }),
 
-  // Upload file and get URL
+  // Upload file and get URL + fileId
   uploadFile: (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    return request<{ fileUrl: string; fileName: string; fileId: string; size: number }>("/api/upload", { 
-      method: "POST", 
-      body: formData 
-    });
+    return request<{ fileUrl: string; fileName: string; fileId: string; size: number }>(
+      "/api/upload",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
   },
 
-  // NEW: Parse uploaded file to extract assignment details
-  parseFile: (fileUrl: string, fileName: string) => {
+  // Parse uploaded file to extract assignment details
+  parseFile: (fileUrl: string, fileName: string, fileId?: string) => {
     return request<{
       parsed: {
         title?: string;
@@ -48,23 +52,34 @@ export const api = {
         questionTypes?: string[];
       } | null;
       fileUrl: string;
-    }>("/api/parse", { 
-      method: "POST", 
-      body: JSON.stringify({ fileUrl, fileName }) 
+    }>("/api/parse", {
+      method: "POST",
+      body: JSON.stringify({ fileUrl, fileName, fileId })
     });
   },
 
-  generate: (id: string) => request<any>(`/api/assignments/${id}/generate`, { method: "POST" }),
+  generate: (id: string) =>
+    request<any>(`/api/assignments/${id}/generate`, { method: "POST" }),
+
   regenerate: (id: string, sectionId?: string) =>
     request<any>(`/api/assignments/${id}/regenerate`, {
       method: "POST",
       body: JSON.stringify({ sectionId })
     }),
+
   updateQuestion: (assignmentId: string, questionId: string, payload: any) =>
     request<any>(`/api/assignments/${assignmentId}/questions/${questionId}`, {
       method: "PATCH",
       body: JSON.stringify(payload)
     }),
+
   deleteQuestion: (assignmentId: string, questionId: string) =>
-    request<any>(`/api/assignments/${assignmentId}/questions/${questionId}`, { method: "DELETE" })
+    request<any>(`/api/assignments/${assignmentId}/questions/${questionId}`, {
+      method: "DELETE"
+    }),
+
+  deleteAssignment: (assignmentId: string) =>
+    request<any>(`/api/assignments/${assignmentId}`, {
+      method: "DELETE"
+    })
 };

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Filter, MoreVertical, Plus, Search } from "lucide-react";
+import { Filter, Plus, Search } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { AssignmentCardMenu } from "@/components/AssignmentCardMenu";
 import { api } from "@/lib/api";
 
 export default async function Dashboard() {
@@ -38,9 +39,11 @@ export default async function Dashboard() {
 
             <div className="assignment-cards">
               {assignments.slice(0, 8).map((assignment) => (
-                <Link key={assignment._id} href={`/assignments/${assignment._id}`} className="assignment-card">
-                  <MoreVertical className="menu-dots" size={30} />
-                  <h2>{assignment.title || "Quiz on Electricity"}</h2>
+                <article key={assignment._id} className="assignment-card">
+                  <AssignmentCardMenu assignmentId={assignment._id} />
+                  <h2>
+                    <Link href={`/assignments/${assignment._id}`}>{assignment.title || "Quiz on Electricity"}</Link>
+                  </h2>
                   <div className="assignment-card-footer">
                     <span>
                       <strong>Assigned on :</strong>{" "}
@@ -50,7 +53,7 @@ export default async function Dashboard() {
                       <strong>Due :</strong> {assignment.dueDate || "21-06-2025"}
                     </span>
                   </div>
-                </Link>
+                </article>
               ))}
             </div>
             <Link href="/assignments/new" className="floating-create">

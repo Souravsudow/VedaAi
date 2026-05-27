@@ -29,6 +29,10 @@ body {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+.veda-dark body {
+  background: #101010;
+}
+
 button,
 input,
 textarea,
@@ -58,6 +62,7 @@ a {
   padding: 34px 34px 32px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .veda-logo {
@@ -247,6 +252,11 @@ a {
   position: relative;
 }
 
+.notification-button {
+  background: transparent;
+  box-shadow: none;
+}
+
 .notification-button span {
   position: absolute;
   top: 11px;
@@ -358,6 +368,10 @@ a {
 
 .assignment-card h2 {
   margin: 0;
+}
+
+.assignment-card h2 a {
+  color: #2b2b2b;
   font-size: 32px;
   font-weight: 950;
   letter-spacing: -0.035em;
@@ -366,11 +380,67 @@ a {
   text-underline-offset: 2px;
 }
 
-.assignment-card .menu-dots {
+.assignment-menu-wrap {
   position: absolute;
   top: 34px;
   right: 32px;
+  z-index: 5;
+}
+
+.assignment-menu-trigger {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
   color: #999;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.assignment-card .menu-dots {
+  color: #999;
+  position: static;
+}
+
+.assignment-menu {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  width: 170px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+  display: none;
+}
+
+.assignment-menu-wrap:hover .assignment-menu,
+.assignment-menu-wrap:focus-within .assignment-menu {
+  display: block;
+}
+
+.assignment-menu a,
+.assignment-menu button {
+  width: 100%;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #2f2f2f;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  font-size: 17px;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.assignment-menu button {
+  margin-top: 6px;
+  background: #f5f5f5;
+  color: #d92d2d;
 }
 
 .assignment-card-footer {
@@ -1102,6 +1172,10 @@ textarea.field {
     height: 36px;
   }
 
+  .notification-button {
+    background: transparent;
+  }
+
   .back-button svg,
   .notification-button svg {
     width: 19px;
@@ -1109,8 +1183,8 @@ textarea.field {
   }
 
   .notification-button span {
-    top: 7px;
-    right: 8px;
+    top: 4px;
+    right: 5px;
     width: 7px;
     height: 7px;
   }
@@ -1186,16 +1260,39 @@ textarea.field {
     padding: 20px;
   }
 
-  .assignment-card h2 {
+  .assignment-card h2 a {
     max-width: calc(100% - 42px);
     font-size: 20px;
   }
 
-  .assignment-card .menu-dots {
+  .assignment-menu-wrap {
     top: 20px;
     right: 18px;
+  }
+
+  .assignment-menu-trigger {
     width: 18px;
     height: 18px;
+  }
+
+  .assignment-card .menu-dots {
+    width: 18px;
+    height: 18px;
+  }
+
+  .assignment-menu {
+    top: 24px;
+    width: 136px;
+    border-radius: 12px;
+    padding: 8px;
+  }
+
+  .assignment-menu a,
+  .assignment-menu button {
+    height: 34px;
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 13px;
   }
 
   .assignment-card-footer {
@@ -1452,15 +1549,31 @@ textarea.field {
   }
 
   .sidebar-collapsed .sidebar-footer {
-    width: 100%;
+    width: 42px;
+    display: grid;
+    justify-content: center;
     justify-items: center;
+    gap: 14px;
   }
 
-  .sidebar-collapsed .school-card {
+  .sidebar-collapsed .sidebar-footer .sidebar-link {
+    margin: 0 auto;
+  }
+
+  .sidebar-collapsed .school-card,
+  .sidebar-collapsed .profile-card {
     width: 42px;
     min-height: 42px;
     padding: 0;
     background: transparent;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    gap: 0;
+  }
+
+  .sidebar-collapsed .profile-info {
+    display: none;
   }
 
   .sidebar-collapsed .avatar {
@@ -1774,22 +1887,27 @@ textarea.field {
 }
 
 .notification-button {
-  width: 56px;
-  height: 56px;
+  width: 42px;
+  height: 42px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: transparent;
   color: #222;
   display: grid;
   place-items: center;
   cursor: pointer;
   position: relative;
+  box-shadow: none;
+}
+
+.notification-button:hover {
+  background: rgba(255, 255, 255, 0.36);
 }
 
 .notification-button .notif-badge {
   position: absolute;
-  top: 10px;
-  right: 12px;
+  top: 6px;
+  right: 7px;
   width: 9px;
   height: 9px;
   border-radius: 999px;
@@ -2007,6 +2125,53 @@ textarea.field {
   padding: 32px;
 }
 
+.veda-dark .app-frame {
+  background: #202020;
+}
+
+.veda-dark .veda-content {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(42, 42, 42, 0.82), transparent 38%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04), transparent 22%, transparent 78%, rgba(255, 255, 255, 0.04)),
+    #202020;
+}
+
+.veda-dark .veda-toolbar,
+.veda-dark .veda-sidebar,
+.veda-dark .settings-card {
+  background: rgba(28, 28, 28, 0.92);
+  color: #f3f3f3;
+}
+
+.veda-dark .section-title-row h1,
+.veda-dark .settings-card-header h2,
+.veda-dark .form-label,
+.veda-dark .toggle-info strong,
+.veda-dark .profile-info strong,
+.veda-dark .profile-trigger strong,
+.veda-dark .toolbar-left span {
+  color: #f3f3f3;
+}
+
+.veda-dark .section-title-row p,
+.veda-dark .toggle-info p,
+.veda-dark .profile-info p {
+  color: #a7a7a7;
+}
+
+.veda-dark .field {
+  border-color: #444;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3f3f3;
+}
+
+.veda-dark .settings-toggle,
+.veda-dark .profile-card,
+.veda-dark .button-soft {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3f3f3;
+}
+
 .settings-card.danger {
   border: 2px solid rgba(239, 78, 69, 0.2);
 }
@@ -2131,7 +2296,31 @@ textarea.field {
 .save-settings {
   display: flex;
   width: fit-content;
-  margin: 0 auto;
+}
+
+.settings-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.settings-save-status {
+  min-height: 42px;
+  border-radius: 999px;
+  background: rgba(105, 212, 123, 0.16);
+  color: #166534;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+.veda-dark .settings-save-status {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.16);
 }
 
 /* Compact desktop */

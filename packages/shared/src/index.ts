@@ -19,6 +19,13 @@ export const questionSchema = z.object({
   bloomLevel: z.enum(["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"])
 });
 
+export const questionPlanSchema = z.object({
+  label: z.string().min(1),
+  type: questionTypeSchema,
+  count: z.number().int().min(1).max(50),
+  marks: z.number().int().min(1).max(50)
+});
+
 export const sectionSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(1),
@@ -48,6 +55,7 @@ export const assignmentInputSchema = z.object({
   fileUrl: z.string().optional(),
   fileName: z.string().optional(),
   questionTypes: z.array(questionTypeSchema).min(1),
+  questionPlan: z.array(questionPlanSchema).optional(),
   totalMarks: z.number().int().min(10).max(200),
   difficultyMix: z.object({
     easy: z.number().min(0).max(100),
@@ -60,6 +68,7 @@ export const assignmentInputSchema = z.object({
 export type Difficulty = z.infer<typeof difficultySchema>;
 export type QuestionType = z.infer<typeof questionTypeSchema>;
 export type Question = z.infer<typeof questionSchema>;
+export type QuestionPlan = z.infer<typeof questionPlanSchema>;
 export type Section = z.infer<typeof sectionSchema>;
 export type QuestionPaper = z.infer<typeof questionPaperSchema>;
 export type AssignmentInput = z.infer<typeof assignmentInputSchema>;

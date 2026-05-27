@@ -23,6 +23,16 @@ const sectionSchema = new Schema(
   { _id: false }
 );
 
+const questionPlanSchema = new Schema(
+  {
+    label: String,
+    type: { type: String },
+    count: Number,
+    marks: Number
+  },
+  { _id: false }
+);
+
 const assignmentSchema = new Schema(
   {
     title: { type: String, required: true },
@@ -34,6 +44,7 @@ const assignmentSchema = new Schema(
     fileUrl: { type: String, default: "" },  // NEW: uploaded file URL
     fileName: { type: String, default: "" }, // NEW: original file name
     questionTypes: [{ type: String, required: true }],
+    questionPlan: [questionPlanSchema],
     totalMarks: { type: Number, required: true },
     difficultyMix: {
       easy: Number,

@@ -36,6 +36,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [profile, setProfile] = useState({
+    name: "Sourav",
+    email: "john.doe@school.edu"
+  });
 
   const title = pathname === "/assignments/new" ? "Assignment" : pathname.startsWith("/assignments/") ? "Assignment" : "Assignment";
   const readyAssignments = assignments.filter((assignment) => assignment.status === "ready");
@@ -73,6 +77,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       mounted = false;
     };
   }, [pathname]);
+
+  useEffect(() => {
+    const readProfile = () => {
+      setProfile({
+        name: localStorage.getItem("vedaProfileName") || "Sourav",
+        email: localStorage.getItem("vedaProfileEmail") || "john.doe@school.edu"
+      });
+    };
+
+    readProfile();
+    window.addEventListener("veda-profile-updated", readProfile);
+    window.addEventListener("storage", readProfile);
+
+    return () => {
+      window.removeEventListener("veda-profile-updated", readProfile);
+      window.removeEventListener("storage", readProfile);
+    };
+  }, []);
+
+  const profileInitials =
+    profile.name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "JD";
 
   return (
     <div className={`app-frame ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
@@ -118,9 +148,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* User Profile Card */}
           <div className="profile-card">
-            <span className="avatar">JD</span>
+            <span className="avatar">{profileInitials}</span>
             <div className="profile-info">
-              <strong>John Doe</strong>
+              <strong>{profile.name}</strong>
               <p>Teacher</p>
             </div>
           </div>
@@ -178,18 +208,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="profile-trigger"
                 onClick={() => setProfileOpen(!profileOpen)}
               >
-                <span className="avatar small">JD</span>
-                <strong>John Doe</strong>
+                <span className="avatar small">{profileInitials}</span>
+                <strong>{profile.name}</strong>
                 <ChevronDown size={23} className={profileOpen ? "rotate" : ""} />
               </button>
 
               {profileOpen && (
                 <div className="profile-dropdown">
                   <div className="profile-header">
-                    <span className="avatar">JD</span>
+                    <span className="avatar">{profileInitials}</span>
                     <div>
-                      <strong>John Doe</strong>
-                      <p>john.doe@school.edu</p>
+                      <strong>{profile.name}</strong>
+                      <p>{profile.email}</p>
                     </div>
                   </div>
                   <div className="profile-menu">

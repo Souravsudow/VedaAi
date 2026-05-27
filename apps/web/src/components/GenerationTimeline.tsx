@@ -18,7 +18,8 @@ const steps = [
 
 export function GenerationTimeline({ assignmentId, status }: { assignmentId: string; status: string }) {
   const { events, setEvent } = useStudioStore();
-  const progress = Math.max(status === "ready" ? 100 : 0, ...events.map((event) => event.progress));
+  const assignmentEvents = events.filter((event) => event.assignmentId === assignmentId);
+  const progress = Math.max(status === "ready" ? 100 : 0, ...assignmentEvents.map((event) => event.progress));
 
   useEffect(() => {
     const socket = io(API_URL);
@@ -49,14 +50,24 @@ export function GenerationTimeline({ assignmentId, status }: { assignmentId: str
       </div>
       <div className="mt-5 grid gap-3">
         {steps.map(([key, label]) => {
-          const event = events.find((item) => item.step === key);
-          const done = progress >= (key === "ready" ? 100 : steps.findIndex((step) => step[0] === key) * 15);
+          const event = assignmentEvents.find((item) => item.step === key);
+          const index = steps.findIndex((step) => step[0] === key);
+          const done = status === "ready" || Boolean(event);
+          const active = status !== "ready" && !event && progress >= (key === "ready" ? 100 : index * 15);
           return (
             <div key={key} className="flex gap-3">
-              {event ? <CheckCircle2 className="text-[#2f6f4e]" size={19} /> : done ? <Loader2 className="animate-spin text-[#f2b84b]" size={19} /> : <Circle className="text-[#98a2b3]" size={19} />}
+              {active ? (
+                <Loader2 className="animate-spin text-[#f2b84b]" size={19} />
+              ) : done ? (
+                <CheckCircle2 className="text-[#2f6f4e]" size={19} />
+              ) : (
+                <Circle className="text-[#98a2b3]" size={19} />
+              )}
               <div>
                 <div className="text-sm font-black">{label}</div>
-                <div className="text-xs text-[#667085]">{event?.message || "Waiting"}</div>
+                <div className="text-xs text-[#667085]">
+                  {event?.message || (status === "ready" ? "Completed" : active ? "Running" : "Waiting")}
+                </div>
               </div>
             </div>
           );

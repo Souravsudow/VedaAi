@@ -316,6 +316,12 @@ export function AssignmentForm() {
         subject: form.subject || "General",
         classLevel: form.classLevel || "Class",
         sourceText: form.sourceText || uploadedFile?.name || "Uploaded syllabus",
+        questionPlan: questionRows.map((row) => ({
+          label: row.label,
+          type: row.type,
+          count: row.count,
+          marks: row.marks
+        })),
         fileUrl: uploadedFile ? `/api/files/${uploadedFile.name}` : undefined,
         fileName: uploadedFile?.name
       };

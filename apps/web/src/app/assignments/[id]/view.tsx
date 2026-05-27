@@ -13,6 +13,7 @@ export function AssignmentDetail({ id }: { id: string }) {
   const load = useCallback(async () => {
     try {
       setData(await api.getAssignment(id));
+      setError("");
     } catch (err: any) {
       setError(err.message);
     }
